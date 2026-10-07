@@ -1,0 +1,1408 @@
+<?php
+// ============================================================
+// ARCHIVO: index.php
+// DESCRIPCIÓN: Página principal con conexión a la base de datos
+// ============================================================
+
+// ── INCLUIR CONEXIÓN ────────────────────────────────────────
+include "conexion.php";
+
+// ── OBTENER DATOS PARA LA PÁGINA ──────────────────────────
+// Obtener servicios activos
+$sql_servicios = "SELECT * FROM servicios WHERE activo = 1 ORDER BY nombre";
+$resultado_servicios = mysqli_query($conexion, $sql_servicios);
+$servicios = mysqli_fetch_all($resultado_servicios, MYSQLI_ASSOC);
+
+// Obtener estadísticas
+$sql_total_reservas = "SELECT COUNT(*) as total FROM reservas";
+$resultado_total = mysqli_query($conexion, $sql_total_reservas);
+$total_reservas = mysqli_fetch_assoc($resultado_total)['total'];
+
+$sql_total_clientes = "SELECT COUNT(*) as total FROM clientes";
+$resultado_clientes = mysqli_query($conexion, $sql_total_clientes);
+$total_clientes = mysqli_fetch_assoc($resultado_clientes)['total'];
+
+// ── CERRAR CONEXIÓN ─────────────────────────────────────────
+// Nota: No cerramos la conexión aquí porque el HTML necesita los datos
+// La conexión se cierra al final del archivo o automáticamente al terminar
+
+?>
+
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sarah Wendy Makeupweb – Reserva tu Cita</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Cormorant+Garamond:wght@300;400;600&family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ============================================================
+           VARIABLES Y TEMAS
+        ============================================================ */
+        :root[data-theme="dark"] {
+            --bg: #1a1a2e;
+            --bg2: #16213e;
+            --bg3: #0f3460;
+            --card: #1e1e3a;
+            --card2: #252545;
+            --text: #f0e6ff;
+            --text2: #c9b8e8;
+            --accent: #e91e8c;
+            --accent2: #ff6eb4;
+            --accent3: #c2185b;
+            --gold: #f7c59f;
+            --nav-bg: rgba(26, 26, 46, 0.97);
+            --shadow: 0 8px 32px rgba(233, 30, 140, 0.15);
+            --border: rgba(233, 30, 140, 0.25);
+            --input-bg: #252545;
+            --input-border: rgba(233, 30, 140, 0.4);
+            --hero-overlay: linear-gradient(135deg, rgba(26, 26, 46, 0.88) 0%, rgba(233, 30, 140, 0.18) 100%);
+        }
+
+        :root[data-theme="light"] {
+            --bg: #fff5f9;
+            --bg2: #ffe4f0;
+            --bg3: #ffd6e8;
+            --card: #ffffff;
+            --card2: #fff0f7;
+            --text: #2d1b2e;
+            --text2: #6b3d5a;
+            --accent: #c2185b;
+            --accent2: #e91e8c;
+            --accent3: #880e4f;
+            --gold: #b5651d;
+            --nav-bg: rgba(255, 245, 249, 0.97);
+            --shadow: 0 8px 32px rgba(194, 24, 91, 0.12);
+            --border: rgba(194, 24, 91, 0.2);
+            --input-bg: #fff0f7;
+            --input-border: rgba(194, 24, 91, 0.35);
+            --hero-overlay: linear-gradient(135deg, rgba(45, 27, 46, 0.72) 0%, rgba(194, 24, 91, 0.12) 100%);
+        }
+
+        /* ============================================================
+           RESET Y BASE
+        ============================================================ */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            transition: background 0.4s, color 0.4s;
+            overflow-x: hidden;
+        }
+
+        /* ============================================================
+           ANIMACIONES GLOBALES
+        ============================================================ */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes float {
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        @keyframes pulse {
+            0%,
+            100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes shake {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            25% {
+                transform: translateX(-10px);
+            }
+            75% {
+                transform: translateX(10px);
+            }
+        }
+
+        /* ============================================================
+           NAVBAR
+        ============================================================ */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: var(--nav-bg);
+            backdrop-filter: blur(14px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            height: 68px;
+            transition: background 0.4s, box-shadow 0.3s;
+            animation: fadeInUp 0.6s ease;
+        }
+
+        nav:hover {
+            box-shadow: 0 4px 20px rgba(233, 30, 140, 0.1);
+        }
+
+        .brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.35rem;
+            font-weight: 900;
+            color: var(--accent);
+            letter-spacing: 0.02em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: transform 0.3s;
+        }
+
+        .brand:hover {
+            transform: scale(1.05);
+        }
+
+        .brand span {
+            color: var(--text);
+            font-weight: 400;
+            font-size: 1rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.8rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            font-weight: 600;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text2);
+            text-decoration: none;
+            transition: color 0.3s, transform 0.3s;
+            position: relative;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--accent);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .nav-links a:hover::after {
+            transform: scaleX(1);
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .theme-toggle {
+            background: var(--card2);
+            border: 1.5px solid var(--border);
+            border-radius: 50px;
+            padding: 5px 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text2);
+            transition: all 0.3s;
+        }
+
+        .theme-toggle:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(233, 30, 140, 0.2);
+        }
+
+        .theme-toggle .icon {
+            font-size: 1rem;
+            transition: transform 0.5s;
+        }
+
+        .theme-toggle:hover .icon {
+            transform: rotate(180deg);
+        }
+
+        /* ============================================================
+           HERO
+        ============================================================ */
+        #inicio {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #2d1b4e 50%, #1a1a2e 100%),
+                url('https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=1600') center/cover no-repeat;
+            background-blend-mode: multiply;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 80px 6vw 60px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        [data-theme="light"] #inicio {
+            background: linear-gradient(135deg, #fff5f9 0%, #fce4ec 50%, #fff5f9 100%),
+                url('https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=1600') center/cover no-repeat;
+            background-blend-mode: multiply;
+        }
+
+        .hero-deco {
+            position: absolute;
+            right: -120px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(233, 30, 140, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .hero-content {
+            max-width: 560px;
+            position: relative;
+            z-index: 2;
+            animation: slideInLeft 1s ease;
+        }
+
+        .hero-eyebrow {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .hero-eyebrow::before {
+            content: '';
+            width: 32px;
+            height: 2px;
+            background: var(--accent);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2.4rem, 5vw, 4rem);
+            font-weight: 900;
+            line-height: 1.1;
+            color: var(--text);
+            margin-bottom: 1.2rem;
+            animation: fadeInUp 1s ease 0.2s both;
+        }
+
+        h1 em {
+            color: var(--accent);
+            font-style: italic;
+            display: inline-block;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .hero-sub {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.18rem;
+            font-weight: 300;
+            color: var(--text2);
+            line-height: 1.7;
+            margin-bottom: 2.2rem;
+            animation: fadeInUp 1s ease 0.4s both;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, var(--accent), var(--accent3));
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            padding: 14px 34px;
+            font-weight: 700;
+            font-size: 0.88rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: 0 6px 28px rgba(233, 30, 140, 0.35);
+            text-decoration: none;
+            transition: all 0.3s;
+            animation: fadeInUp 1s ease 0.6s both;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 10px 36px rgba(233, 30, 140, 0.45);
+        }
+
+        .hero-badges {
+            display: flex;
+            gap: 1.4rem;
+            margin-top: 2.8rem;
+            flex-wrap: wrap;
+            animation: fadeInUp 1s ease 0.8s both;
+        }
+
+        .badge {
+            background: var(--card2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 18px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text2);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            transition: all 0.3s;
+        }
+
+        .badge:hover {
+            transform: translateY(-3px) scale(1.05);
+            border-color: var(--accent);
+            box-shadow: 0 4px 20px rgba(233, 30, 140, 0.2);
+        }
+
+        .badge .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        /* ============================================================
+           SECTIONS
+        ============================================================ */
+        section {
+            padding: 100px 6vw;
+            opacity: 0;
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        section:nth-child(even) {
+            animation: slideInRight 0.8s ease forwards;
+        }
+
+        section:nth-child(odd) {
+            animation: slideInLeft 0.8s ease forwards;
+        }
+
+        .section-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 0.8rem;
+            display: inline-block;
+            position: relative;
+        }
+
+        .section-label::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--accent);
+            transform: scaleX(0);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .section-label:hover::after {
+            transform: scaleX(1);
+        }
+
+        h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(1.9rem, 3.5vw, 2.8rem);
+            font-weight: 900;
+            color: var(--text);
+            margin-bottom: 1rem;
+            line-height: 1.15;
+            display: inline-block;
+            position: relative;
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), transparent);
+            transition: width 0.3s;
+        }
+
+        h2:hover::after {
+            width: 100%;
+        }
+
+        .section-intro {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.1rem;
+            color: var(--text2);
+            max-width: 500px;
+            line-height: 1.75;
+            margin-bottom: 3rem;
+        }
+
+        /* ============================================================
+           SERVICIOS
+        ============================================================ */
+        #servicios {
+            background: var(--bg2);
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.6rem;
+        }
+
+        .service-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem 1.6rem;
+            transition: all 0.4s;
+            cursor: default;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .service-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(233, 30, 140, 0.05), transparent);
+            transition: left 0.5s;
+        }
+
+        .service-card:hover::before {
+            left: 100%;
+        }
+
+        .service-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: var(--shadow);
+            border-color: var(--accent);
+        }
+
+        .service-card:nth-child(1) {
+            animation: slideInLeft 0.6s ease 0.1s both;
+        }
+        .service-card:nth-child(2) {
+            animation: slideInRight 0.6s ease 0.2s both;
+        }
+        .service-card:nth-child(3) {
+            animation: slideInLeft 0.6s ease 0.3s both;
+        }
+        .service-card:nth-child(4) {
+            animation: slideInRight 0.6s ease 0.4s both;
+        }
+        .service-card:nth-child(5) {
+            animation: slideInLeft 0.6s ease 0.5s both;
+        }
+        .service-card:nth-child(6) {
+            animation: slideInRight 0.6s ease 0.6s both;
+        }
+
+        .service-icon {
+            font-size: 2.2rem;
+            margin-bottom: 1rem;
+            display: inline-block;
+            transition: transform 0.5s;
+        }
+
+        .service-card:hover .service-icon {
+            transform: rotate(20deg) scale(1.2);
+        }
+
+        .service-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.18rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+
+        .service-desc {
+            font-size: 0.82rem;
+            color: var(--text2);
+            line-height: 1.65;
+            margin-bottom: 1rem;
+        }
+
+        .service-price {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--accent);
+            transition: all 0.3s;
+        }
+
+        .service-card:hover .service-price {
+            transform: scale(1.1);
+            color: var(--accent2);
+        }
+
+        .service-duration {
+            font-size: 0.75rem;
+            color: var(--text2);
+            margin-top: 2px;
+        }
+
+        /* ============================================================
+           RESERVAS - FORMULARIO ÚNICO
+        ============================================================ */
+        #reservas {
+            background: var(--bg);
+        }
+
+        .form-container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: var(--shadow);
+            transition: all 0.3s;
+        }
+
+        .form-container:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(233, 30, 140, 0.15);
+        }
+
+        .form-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 1.8rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border);
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text2);
+            margin-bottom: 0.5rem;
+            transition: color 0.3s;
+        }
+
+        .form-group:hover label {
+            color: var(--accent);
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1.5px solid var(--input-border);
+            border-radius: 10px;
+            padding: 11px 14px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.88rem;
+            color: var(--text);
+            outline: none;
+            transition: all 0.3s;
+            appearance: none;
+        }
+
+        input:hover,
+        select:hover,
+        textarea:hover {
+            border-color: var(--accent2);
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(233, 30, 140, 0.12);
+            transform: scale(1.01);
+        }
+
+        input.error {
+            border-color: #e53935 !important;
+            animation: shake 0.5s ease;
+        }
+
+        .error-msg {
+            font-size: 0.72rem;
+            color: #e53935;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .error-msg.show {
+            display: block;
+            animation: fadeInUp 0.3s ease;
+        }
+
+        .field-hint {
+            font-size: 0.7rem;
+            color: var(--text2);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            opacity: 0.7;
+            margin-top: 4px;
+            transition: opacity 0.3s;
+        }
+
+        .field-hint:hover {
+            opacity: 1;
+        }
+
+        /* ============================================================
+           SERVICE CHECKBOXES
+        ============================================================ */
+        .service-checkboxes {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        .service-check-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 8px 12px;
+            background: var(--input-bg);
+            border: 1.5px solid var(--input-border);
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        .service-check-item:hover {
+            border-color: var(--accent);
+            transform: translateX(4px);
+            box-shadow: 0 2px 12px rgba(233, 30, 140, 0.1);
+        }
+
+        .service-check-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--accent);
+            cursor: pointer;
+            border-radius: 4px;
+            flex-shrink: 0;
+            transition: transform 0.2s;
+        }
+
+        .service-check-item input[type="checkbox"]:checked {
+            transform: scale(1.1);
+        }
+
+        .service-check-item span {
+            font-size: 0.84rem;
+            color: var(--text2);
+            transition: color 0.3s;
+        }
+
+        .service-check-item:has(input:checked) {
+            border-color: var(--accent);
+            background: var(--card2);
+        }
+
+        .service-check-item:has(input:checked) span {
+            color: var(--text);
+        }
+
+        .btn-submit {
+            width: 100%;
+            background: linear-gradient(135deg, var(--accent), var(--accent3));
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            padding: 15px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: 0 6px 28px rgba(233, 30, 140, 0.35);
+            transition: all 0.3s;
+            margin-top: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-submit::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-submit:hover::before {
+            left: 100%;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 10px 36px rgba(233, 30, 140, 0.45);
+        }
+
+        .btn-submit:active {
+            transform: scale(0.95);
+        }
+
+        /* ============================================================
+           CONTACTO
+        ============================================================ */
+        #contacto {
+            background: var(--bg2);
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: start;
+        }
+
+        @media (max-width: 760px) {
+            .contact-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .contact-info h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 1.4rem;
+        }
+
+        .contact-items {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1.1rem 1.4rem;
+            transition: all 0.3s;
+        }
+
+        .contact-item:hover {
+            transform: translateX(8px) scale(1.02);
+            border-color: var(--accent);
+            box-shadow: var(--shadow);
+        }
+
+        .contact-item-icon {
+            font-size: 1.4rem;
+            flex-shrink: 0;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .contact-item-text strong {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 2px;
+        }
+
+        .contact-item-text span {
+            font-size: 0.84rem;
+            color: var(--text2);
+        }
+
+        .contact-form {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            transition: all 0.3s;
+        }
+
+        .contact-form:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(233, 30, 140, 0.15);
+        }
+
+        .contact-form h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 1.4rem;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        /* ============================================================
+           UBICACIÓN
+        ============================================================ */
+        #ubicacion {
+            background: var(--bg);
+        }
+
+        .map-container {
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            margin-top: 2rem;
+            transition: all 0.3s;
+        }
+
+        .map-container:hover {
+            transform: scale(1.01);
+            box-shadow: 0 12px 40px rgba(233, 30, 140, 0.2);
+        }
+
+        .map-container iframe {
+            display: block;
+            width: 100%;
+            height: 400px;
+            border: none;
+        }
+
+        .map-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        .map-info-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1.2rem 1.4rem;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            transition: all 0.3s;
+        }
+
+        .map-info-card:hover {
+            transform: translateY(-4px) scale(1.02);
+            border-color: var(--accent);
+            box-shadow: var(--shadow);
+        }
+
+        .map-info-card .ico {
+            font-size: 1.4rem;
+            flex-shrink: 0;
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .map-info-card strong {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .map-info-card span {
+            font-size: 0.83rem;
+            color: var(--text2);
+            line-height: 1.5;
+        }
+
+        /* ============================================================
+           FOOTER
+        ============================================================ */
+        footer {
+            background: var(--bg2);
+            border-top: 1px solid var(--border);
+            padding: 2.5rem 6vw;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        footer:hover {
+            background: var(--bg);
+        }
+
+        footer .footer-brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: var(--accent);
+            margin-bottom: 0.6rem;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+
+        footer .footer-brand:hover {
+            transform: scale(1.05);
+            text-shadow: 0 0 20px rgba(233, 30, 140, 0.3);
+        }
+
+        footer p {
+            font-size: 0.8rem;
+            color: var(--text2);
+        }
+
+        /* ============================================================
+           RESPONSIVE
+        ============================================================ */
+        @media (max-width: 680px) {
+            .nav-links {
+                display: none;
+            }
+            .nav-right {
+                gap: 0.6rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            section {
+                padding: 60px 4vw;
+            }
+            .hero-content {
+                text-align: center;
+            }
+            .hero-badges {
+                justify-content: center;
+            }
+            .hero-eyebrow::before {
+                display: none;
+            }
+            .badge {
+                font-size: 0.7rem;
+                padding: 8px 12px;
+            }
+            .service-card {
+                padding: 1.5rem;
+            }
+            .form-container {
+                padding: 1.5rem;
+            }
+            .contact-form {
+                padding: 1.5rem;
+            }
+        }
+
+        /* ============================================================
+           SCROLLBAR
+        ============================================================ */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent2);
+        }
+
+        ::selection {
+            background: var(--accent);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== NAVBAR ===== -->
+    <nav>
+        <div class="brand">🌸 Sarah Wendy <span>Makeupweb</span></div>
+        <div class="nav-links">
+            <a href="#inicio">Inicio</a>
+            <a href="#servicios">Servicios</a>
+            <a href="#reservas">Reservas</a>
+            <a href="#contacto">Contacto</a>
+            <a href="#ubicacion">Ubicación</a>
+        </div>
+        <div class="nav-right">
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon">☀️</span><span id="theme-label">Claro</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ===== HERO ===== -->
+    <section id="inicio">
+        <div class="hero-deco"></div>
+        <div class="hero-content">
+            <div class="hero-eyebrow">Salón de Belleza Profesional</div>
+            <h1>Reserva tu <em>Cita de<br>Belleza</em> Hoy</h1>
+            <p class="hero-sub">Maquillaje profesional, peinados y tratamientos exclusivos para realzar tu mejor versión.</p>
+            <a href="#reservas" class="btn-primary">✨ Reservar Ahora</a>
+            <div class="hero-badges">
+                <div class="badge"><div class="dot"></div> <?php echo $total_clientes; ?>+ clientes felices</div>
+                <div class="badge"><div class="dot"></div> <?php echo $total_reservas; ?>+ reservas</div>
+                <div class="badge"><div class="dot"></div> Horarios flexibles</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SERVICIOS ===== -->
+    <section id="servicios">
+        <div class="section-label">Lo que ofrecemos</div>
+        <h2>Nuestros Servicios</h2>
+        <p class="section-intro">Cada servicio es diseñado a medida para ti, con productos de alta calidad y atención personalizada.</p>
+        <div class="services-grid">
+            <?php foreach ($servicios as $servicio): ?>
+            <div class="service-card">
+                <div class="service-icon"><?php echo $servicio['icono']; ?></div>
+                <div class="service-name"><?php echo htmlspecialchars($servicio['nombre']); ?></div>
+                <div class="service-desc"><?php echo htmlspecialchars($servicio['descripcion']); ?></div>
+                <div class="service-price">$<?php echo number_format($servicio['precio'], 0, ',', '.'); ?></div>
+                <div class="service-duration">⏱ <?php echo $servicio['duracion']; ?> min</div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </section>
+
+    <!-- ===== RESERVAS - FORMULARIO ÚNICO ===== -->
+    <section id="reservas">
+        <div class="section-label">Sistema de Reservas</div>
+        <h2>Solicitud de Cita</h2>
+        <p class="section-intro">Trabajamos de lunes a sábado en horarios de mañana, tarde y noche.</p>
+
+        <!-- FORMULARIO ÚNICO -->
+        <div class="form-container">
+            <div class="form-title">📋 Formulario de Reserva</div>
+
+            <form action="guardar_reserva.php" method="POST">
+                <!-- Nombre -->
+                <div class="form-group">
+                    <label for="nombre">Nombre Completo <span style="color:var(--accent)">*</span></label>
+                    <input type="text" id="nombre" name="nombre" placeholder="Ingrese su nombre completo" required>
+                    <div class="field-hint">💡 Solo letras, sin números ni símbolos</div>
+                </div>
+
+                <!-- Email -->
+                <div class="form-group">
+                    <label for="email">Correo Electrónico <span style="color:var(--accent)">*</span></label>
+                    <input type="email" id="email" name="email" placeholder="ejemplo@correo.com" required>
+                </div>
+
+                <!-- Teléfono -->
+                <div class="form-group">
+                    <label for="telefono">Teléfono de Contacto <span style="color:var(--accent)">*</span></label>
+                    <input type="tel" id="telefono" name="telefono" placeholder="+591 70000000" value="+591 " required>
+                    <div class="field-hint">📱 Formato boliviano: +591 70000000</div>
+                </div>
+
+                <!-- Fecha -->
+                <div class="form-group">
+                    <label for="fecha">Fecha de la Cita <span style="color:var(--accent)">*</span></label>
+                    <input type="date" id="fecha" name="fecha" required>
+                    <div class="field-hint">📅 Solo fechas desde hoy en adelante</div>
+                </div>
+
+                <!-- Horario -->
+                <div class="form-group">
+                    <label for="horario">Horario <span style="color:var(--accent)">*</span></label>
+                    <select id="horario" name="horario" required>
+                        <option value="">-- Seleccione un horario --</option>
+                        <optgroup label="Mañana">
+                            <option value="09:00">09:00 hs</option>
+                            <option value="10:00">10:00 hs</option>
+                            <option value="11:00">11:00 hs</option>
+                        </optgroup>
+                        <optgroup label="Tarde">
+                            <option value="13:00">13:00 hs</option>
+                            <option value="14:00">14:00 hs</option>
+                            <option value="15:00">15:00 hs</option>
+                            <option value="16:00">16:00 hs</option>
+                            <option value="17:00">17:00 hs</option>
+                            <option value="18:00">18:00 hs</option>
+                        </optgroup>
+                        <optgroup label="Noche">
+                            <option value="19:00">19:00 hs</option>
+                            <option value="20:00">20:00 hs</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <!-- Selección de Servicios -->
+                <div class="form-group">
+                    <label>Selecciona tus servicios <span style="color:var(--accent)">*</span></label>
+                    <div class="service-checkboxes">
+                        <?php foreach ($servicios as $servicio): ?>
+                        <label class="service-check-item">
+                            <input type="checkbox" name="servicios[]" value="<?php echo $servicio['id']; ?>">
+                            <span><?php echo $servicio['icono']; ?> <?php echo htmlspecialchars($servicio['nombre']); ?> — $<?php echo number_format($servicio['precio'], 0, ',', '.'); ?></span>
+                        </label>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit">✅ Confirmar Reserva</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- ===== CONTACTO ===== -->
+    <section id="contacto">
+        <div class="section-label">Hablemos</div>
+        <h2>Contacto</h2>
+        <div class="contact-grid">
+            <div class="contact-info">
+                <h3>¿Tenés alguna consulta?</h3>
+                <div class="contact-items">
+                    <div class="contact-item">
+                        <div class="contact-item-icon">📱</div>
+                        <div class="contact-item-text">
+                            <strong>WhatsApp</strong>
+                            <span>+591 70000000</span>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-item-icon">📧</div>
+                        <div class="contact-item-text">
+                            <strong>Email</strong>
+                            <span>contacto@sarahwendy.com</span>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-item-icon">📸</div>
+                        <div class="contact-item-text">
+                            <strong>Instagram</strong>
+                            <span>@sarahwendymakeup</span>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-item-icon">🕐</div>
+                        <div class="contact-item-text">
+                            <strong>Horario</strong>
+                            <span>Lunes a Sábado · 09:00 – 20:00 hs</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="contact-form">
+                <h3>Envianos un mensaje</h3>
+                <form action="enviar_mensaje.php" method="POST">
+                    <div class="form-group">
+                        <label>Tu nombre</label>
+                        <input type="text" name="nombre_contacto" placeholder="Tu nombre completo">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" name="email_contacto" placeholder="tu@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Mensaje</label>
+                        <textarea name="mensaje" placeholder="Escribí tu consulta acá..."></textarea>
+                    </div>
+                    <button type="submit" class="btn-submit">Enviar Mensaje</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== UBICACIÓN ===== -->
+    <section id="ubicacion">
+        <div class="section-label">Dónde encontrarnos</div>
+        <h2>Nuestra Ubicación</h2>
+        <div class="map-info">
+            <div class="map-info-card">
+                <div class="ico">📍</div>
+                <div>
+                    <strong>Dirección</strong>
+                    <span>Av. Santa Fe 1234, Piso 3<br>Buenos Aires, Argentina</span>
+                </div>
+            </div>
+            <div class="map-info-card">
+                <div class="ico">🚇</div>
+                <div>
+                    <strong>Cómo llegar</strong>
+                    <span>Metro: Línea D, estación Callao</span>
+                </div>
+            </div>
+            <div class="map-info-card">
+                <div class="ico">🅿️</div>
+                <div>
+                    <strong>Estacionamiento</strong>
+                    <span>Playa de estacionamiento a 50 m</span>
+                </div>
+            </div>
+        </div>
+        <div class="map-container">
+            <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3283.7484927815!2d-58.39444462341887!3d-34.59987505772116!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95bccac66f8e3a9b%3A0x1f6cc0d0e1e1be8c!2sAv.+Santa+Fe%2C+Buenos+Aires!5e0!3m2!1ses!2sar!4v1700000000000"
+                allowfullscreen loading="lazy">
+            </iframe>
+        </div>
+    </section>
+
+    <!-- ===== FOOTER ===== -->
+    <footer>
+        <div class="footer-brand">🌸 Sarah Wendy Makeupweb</div>
+        <p>Maquillaje profesional · Peinados · Tratamientos de belleza</p>
+        <p style="margin-top:0.4rem;">© 2026 Todos los derechos reservados.</p>
+    </footer>
+
+    <!-- ===== JAVASCRIPT ===== -->
+    <script>
+        // ============================================================
+        // THEME TOGGLE
+        // ============================================================
+        let darkMode = true;
+
+        function toggleTheme() {
+            darkMode = !darkMode;
+            document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
+            document.getElementById('theme-label').textContent = darkMode ? 'Claro' : 'Oscuro';
+            document.querySelector('.theme-toggle .icon').textContent = darkMode ? '☀️' : '🌙';
+        }
+
+        // ============================================================
+        // FECHA: SOLO DESDE HOY
+        // ============================================================
+        window.onload = function() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const todayStr = year + '-' + month + '-' + day;
+
+            const fechaInput = document.getElementById('fecha');
+            if (fechaInput) {
+                fechaInput.min = todayStr;
+                fechaInput.value = todayStr;
+            }
+        };
+    </script>
+
+</body>
+</html>
+
+<?php
+// ── CERRAR CONEXIÓN ─────────────────────────────────────────
+mysqli_close($conexion);
+?>
